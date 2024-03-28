@@ -1,5 +1,4 @@
 from datetime import date
-import getpass
 import numpy
 import pandas
 
@@ -7,19 +6,19 @@ from satellite_data_download.sentinel_data_downloader import SentinelDataDownloa
 from satellite_data_download.models.sentinel_api_query_input import (
     SentinelAPIQueryInput,
 )
-from satellite_data_download.polygon_folder_manager.polygon_folder_manager import (
-    PolygonFolderManager,
+from satellite_data_download.polygon_folder_manager.polygon_folder_manager_factory import (
+    PolygonFolderManagerFactory,
 )
 
-
-USER = input("UserName: ")
-PASSWORD = getpass.getpass()
+USER = "NOT_NEEDED"
+PASSWORD = "NOT_NEEDED"
 GREAT_AREA_LIST = [
     "nb_bouctouche_cocagne",
-    "ipe_dunk_west",
-    "ipe_morell",
+    # "ipe_dunk_west",
+    # "ipe_morell",
 ]  # Choice are ["nb_bouctouche_cocagne", "ipe_dunk_west", "ipe_morell"]
-YEAR_LIST = [2022, 2023]
+YEAR_LIST = [2022, 2023]  # , 2023]
+PROCESSING_LEVEL = "level-2a"
 
 
 if __name__ == "__main__":
@@ -38,12 +37,16 @@ if __name__ == "__main__":
     i = 0
     for year in YEAR_LIST:
         for area in GREAT_AREA_LIST:
-            polygon_folder_manager = PolygonFolderManager(area)
+            polygon_folder_manager = (
+                PolygonFolderManagerFactory.create_polygon_folder_manager(
+                    area, PROCESSING_LEVEL
+                )
+            )
             sentinel_api_query_input = SentinelAPIQueryInput(
                 area=polygon_folder_manager.download_polygon,
-                date=(date(year, 5, 1), date(year, 11, 1)),
-                platformname="Sentinel-2",
-                processinglevel="Level-2A",
+                date=(date(year, 4, 1), date(year, 11, 1)),
+                platformname="SENTINEL-2",
+                processinglevel=PROCESSING_LEVEL,
                 cloudcoverpercentage=(0, 100),
             )
 
@@ -55,7 +58,14 @@ if __name__ == "__main__":
             number_of_product = len(sentinel_data_downloader.products_df)
             number_of_product_to_download = len(sentinel_data_downloader.uuid_dict)
             number_of_online_product = int(
-                numpy.array(list(sentinel_data_downloader.uuid_dict.values())).sum()
+                numpy.sum(
+                    [
+                        single_dict["is_online"]
+                        for single_dict in list(
+                            sentinel_data_downloader.uuid_dict.values()
+                        )
+                    ]
+                )
             )
             number_of_product_to_trigger = (
                 number_of_product_to_download - number_of_online_product

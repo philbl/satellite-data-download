@@ -8,24 +8,19 @@ from fiona.crs import CRS
 import geopandas as gpd
 from shapely.geometry import box
 from rasterio.mask import mask
-from tqdm import tqdm
 
-from satellite_data_download.polygon_folder_manager.polygon_folder_manager import (
-    PolygonFolderManager,
+from satellite_data_download.polygon_subset.abstract_polygon_subset import (
+    AbstractPolygonSubset,
 )
 
 
-class PolygonSubset:
+class PolygonSubsetLevel2A(AbstractPolygonSubset):
     """
     Create susbset of zipfile downloaded by the Sentinel2Api. The polygon used for the subset and
     where it will be saved is handle by the PolygonFolderManager.
     New complete zip file is saved with every ".jp2" file croped according to the polygon.
     The new file is now smaller and is also georeferenced according to his new representation.
     """
-
-    def __init__(self, polygon_folder_manager: PolygonFolderManager):
-        assert isinstance(polygon_folder_manager, PolygonFolderManager)
-        self.polygon_folder_manager = polygon_folder_manager
 
     @property
     def polygon_epsg(self):
@@ -55,21 +50,21 @@ class PolygonSubset:
 
         return coords
 
-    def _crop_and_create_new_zip_file_according_to_wkt_polygon(
+    def _crop_and_create_new_file_according_to_wkt_polygon(
         self,
-        source_path,
+        to_split_path,
         destination_path,
-        zip_name,
+        filename,
         wkt_polygon,
     ):
-        source_zip_path = Path(source_path, zip_name)
-        destination_zip_path = Path(destination_path, zip_name)
+        to_split_zip_path = Path(to_split_path, filename)
+        destination_zip_path = Path(destination_path, filename)
         if destination_zip_path.exists():
-            raise ValueError(f"file {zip_name} already exist")
+            raise ValueError(f"file {filename} already exist")
 
         # Copy all the ZipFile except for the .jp2 files.
         # Those file are croped before copied
-        with zipfile.ZipFile(source_zip_path, "r") as original_zip:
+        with zipfile.ZipFile(to_split_zip_path, "r") as original_zip:
             with zipfile.ZipFile(destination_zip_path, "w") as destination_zip:
                 for item in original_zip.infolist():
                     if "jp2" not in item.filename:
@@ -78,7 +73,7 @@ class PolygonSubset:
 
         coords = self._create_mask_coords_from_wkt_polygon(wkt_polygon)
 
-        zip_path = str(Path(source_zip_path))
+        zip_path = str(Path(to_split_zip_path))
         zip_format_path = f"zip+file:{zip_path}!"
         with zipfile.ZipFile(Path(zip_path), "r") as f:
             all_file_name = f.filelist
@@ -103,21 +98,3 @@ class PolygonSubset:
                     dest.write(out_raster)
                 zip_archive.write("tmp.jp2", jp2.filename)
                 Path("tmp.jp2").unlink()
-
-    def apply_polygon_subset_from_source_path_to_destination_list(self):
-        source_path = self.polygon_folder_manager.source_path
-        for destination_dict in self.polygon_folder_manager.destination_list:
-            destination_path = destination_dict["destination_path"]
-            wkt_polygon = destination_dict["polygon"]
-            zip_name_list = [
-                zip_path.name
-                for zip_path in Path(source_path).iterdir()
-                if not Path(destination_path, zip_path.name).exists()
-            ]
-            for zip_name in tqdm(zip_name_list):
-                self._crop_and_create_new_zip_file_according_to_wkt_polygon(
-                    source_path,
-                    destination_path,
-                    zip_name,
-                    wkt_polygon,
-                )

@@ -1,23 +1,16 @@
+from abc import ABC, abstractmethod
 from pathlib import Path
 
 from satellite_data_download.config.polygon_dict import POLYGON_DICT
-from satellite_data_download.config.folder_management import FOLDER_MANAGEMENT
+from satellite_data_download.config.folder_management import get_folder_management_dict
 
 
-class PolygonFolderManager:
-    """
-    Class to handle the folder management when downloading data via Sentinel2 API.
-    When downloading Sentinel2 data, a polygon is used to make the query, then the image downloaded
-    contains that polygon but also a way bigger image. So for two differents polygon, it
-    might return the same big images.
-    This class handle to retrieve where the original data will be downloaded (source path) and where it will
-    be saved when it's gonna be split by the src.satellite_data.polygon_subset.polygon_subset.PolygonSubset
-    It also handle how to delete the file in the source path when it has been split in the destination list.
-    """
-
-    def __init__(self, great_area_name):
+class AbstractPolygonFolderManager(ABC):
+    def __init__(self, great_area_name, processing_level):
         self.great_area_name = great_area_name
-        self._source_path = self._get_source_path()
+        self.folder_management_dict = get_folder_management_dict(processing_level)
+        self._download_path = self._get_download_path()
+        self._to_split_path = self._get_to_split_path()
         self._destination_list = self._get_destination_list()
         self._download_polygon = self._get_download_polygon()
 
@@ -29,8 +22,12 @@ class PolygonFolderManager:
         ]
 
     @property
-    def source_path(self):
-        return self._source_path
+    def download_path(self):
+        return self._download_path
+
+    @property
+    def to_split_path(self):
+        return self._to_split_path
 
     @property
     def destination_list(self):
@@ -40,11 +37,16 @@ class PolygonFolderManager:
     def download_polygon(self):
         return self._download_polygon
 
-    def _get_source_path(self):
-        return FOLDER_MANAGEMENT[self.great_area_name]["source_path"]
+    def _get_download_path(self):
+        return self.folder_management_dict[self.great_area_name]["download_path"]
+
+    def _get_to_split_path(self):
+        return self.folder_management_dict[self.great_area_name]["to_split_path"]
 
     def _get_destination_list(self):
-        destination_list = FOLDER_MANAGEMENT[self.great_area_name]["destination_list"]
+        destination_list = self.folder_management_dict[self.great_area_name][
+            "destination_list"
+        ]
         for destination in destination_list:
             destination_name = destination["estuary_name"]
             destination["polygon"] = POLYGON_DICT[destination_name]
@@ -54,12 +56,12 @@ class PolygonFolderManager:
         polygon = self.destination_list[0]["polygon"]
         return polygon
 
-    def delete_zip_file_in_source_path_that_are_in_destination_list(self):
+    def delete_file_in_to_split_path_that_are_in_destination_list(self):
         """
-        Delete the zip file in the source path, if the file is now present in all the
+        Delete the zip file in the to split path, if the file is now present in all the
         destination path list
         """
-        file_list = [file for file in Path(self.source_path).iterdir()]
+        file_list = [file for file in Path(self.to_split_path).iterdir()]
         for file in file_list:
             filename = file.name
             if all(
@@ -69,3 +71,11 @@ class PolygonFolderManager:
                 ]
             ):
                 file.unlink()
+
+    @abstractmethod
+    def apply_download_post_processing(self):
+        """ """
+
+    @abstractmethod
+    def determine_if_folder_zip_is_already_downloaded(self, folder_name):
+        """ """
