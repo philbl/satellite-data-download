@@ -5,14 +5,14 @@ from satellite_data_download.sentinel_data_downloader import SentinelDataDownloa
 from satellite_data_download.models.sentinel_api_query_input import (
     SentinelAPIQueryInput,
 )
-from satellite_data_download.polygon_folder_manager.polygon_folder_manager import (
+from satellite_data_download.polygon_folder_manager.polygon_folder_manager_level_2a import (
     PolygonFolderManager,
 )
 
 USER = input("UserName: ")
 PASSWORD = getpass.getpass()
 GREAT_AREA_LIST = [
-    "nb_bouctouche_cocagne"
+    "ipe_dunk_west"
 ]  # Choice are ["nb_bouctouche_cocagne", "ipe_dunk_west", "ipe_morell"]
 YEAR_LIST = [2023]
 

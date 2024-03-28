@@ -5,41 +5,65 @@ from satellite_data_download.sentinel_data_downloader import SentinelDataDownloa
 from satellite_data_download.models.sentinel_api_query_input import (
     SentinelAPIQueryInput,
 )
-from satellite_data_download.polygon_folder_manager.polygon_folder_manager import (
-    PolygonFolderManager,
+
+from satellite_data_download.polygon_folder_manager.polygon_folder_manager_factory import (
+    PolygonFolderManagerFactory,
 )
-from satellite_data_download.polygon_subset.polygon_subset import PolygonSubset
+from satellite_data_download.polygon_subset.polygon_subset_factory import (
+    PolygonSubsetFactory,
+)
+from satellite_data_download.atmospheric_correction.acolite_atmospheric_correction import (
+    AcoliteAtmoshpericCorrection,
+)
 
 
-USER = input("UserName: ")
+USER = "philippe.blouin-leclerc@inrs.ca"  # input("UserName: ")
 PASSWORD = getpass.getpass()
 GREAT_AREA_LIST = [
     "nb_bouctouche_cocagne",
-    "ipe_dunk_west",
-    "ipe_morell",
+    # "ipe_dunk_west",
+    # "ipe_morell",
 ]  # Choice are ["nb_bouctouche_cocagne", "ipe_dunk_west", "ipe_morell"]
-YEAR_LIST = [2023]
+YEAR_LIST = [2021]
+PROCESSING_LEVEL = "level-2a"
 
 
 if __name__ == "__main__":
     for great_area in GREAT_AREA_LIST:
         for year in YEAR_LIST:
             print(f"Downloading {great_area} {year}")
-            polygon_folder_manager = PolygonFolderManager(great_area)
-            sentinel_api_query_input = SentinelAPIQueryInput(
-                area=polygon_folder_manager.download_polygon,
-                date=(date(year, 5, 1), date(year, 11, 1)),
-                platformname="Sentinel-2",
-                processinglevel="Level-2A",
-                cloudcoverpercentage=(0, 100),
-            )
+            for i in range(15):
+                polygon_folder_manager = (
+                    PolygonFolderManagerFactory.create_polygon_folder_manager(
+                        great_area, PROCESSING_LEVEL
+                    )
+                )
+                sentinel_api_query_input = SentinelAPIQueryInput(
+                    area=polygon_folder_manager.download_polygon,
+                    date=(date(year, 4, 1), date(year, 4, 3)),
+                    platformname="SENTINEL-2",
+                    processinglevel=PROCESSING_LEVEL,
+                    cloudcoverpercentage=(0, 100),
+                )
 
-            sentinel_data_downloader = SentinelDataDownloader(
-                USER, PASSWORD, sentinel_api_query_input, polygon_folder_manager
-            )
+                sentinel_data_downloader = SentinelDataDownloader(
+                    USER, PASSWORD, sentinel_api_query_input, polygon_folder_manager
+                )
 
-            sentinel_data_downloader.download_online_uuid()
+                sentinel_data_downloader.download_online_uuid(5)
+                polygon_folder_manager.apply_download_post_processing()
 
-            polygon_subset = PolygonSubset(polygon_folder_manager)
-            polygon_subset.apply_polygon_subset_from_source_path_to_destination_list()
-            polygon_folder_manager.delete_zip_file_in_source_path_that_are_in_destination_list()
+                if PROCESSING_LEVEL == "level-1c":
+                    # # Apply Atmospheric Correction
+                    atmospheric_correction = AcoliteAtmoshpericCorrection(
+                        polygon_folder_manager
+                    )
+                    atmospheric_correction.generate_bash_file()
+                    atmospheric_correction.run_bash_file()
+                    atmospheric_correction.delete_corrected_files()
+
+                polygon_subset = PolygonSubsetFactory.create_polygon_subset(
+                    polygon_folder_manager, PROCESSING_LEVEL
+                )
+                polygon_subset.apply_polygon_subset_from_to_split_path_to_destination_list()
+                polygon_folder_manager.delete_file_in_to_split_path_that_are_in_destination_list()
