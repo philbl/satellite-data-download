@@ -13,12 +13,12 @@ from satellite_data_download.polygon_folder_manager.polygon_folder_manager_facto
 USER = "NOT_NEEDED"
 PASSWORD = "NOT_NEEDED"
 GREAT_AREA_LIST = [
-    "nb_bouctouche_cocagne",
+    # "nb_bouctouche_cocagne",
     # "ipe_dunk_west",
-    # "ipe_morell",
-]  # Choice are ["nb_bouctouche_cocagne", "ipe_dunk_west", "ipe_morell"]
-YEAR_LIST = [2022, 2023]  # , 2023]
-PROCESSING_LEVEL = "level-2a"
+    "ipe_morell",
+]
+YEAR_LIST = [2018, 2019]  # , 2020, 2021, 2022, 2023]
+PROCESSING_LEVEL = "level-1c"
 
 
 if __name__ == "__main__":
@@ -72,8 +72,8 @@ if __name__ == "__main__":
             )
             estimate_time_to_trigger_all_in_min = number_of_product_to_trigger * 32
             estimate_time_to_trigger_all_in_hour_str = (
-                f"{int(estimate_time_to_trigger_all_in_min/60)}h:"
-                f"{estimate_time_to_trigger_all_in_min%60}m"
+                f"{int(estimate_time_to_trigger_all_in_min / 60)}h:"
+                f"{estimate_time_to_trigger_all_in_min % 60}m"
             )
             total_trigger_time += estimate_time_to_trigger_all_in_min
 
@@ -100,6 +100,6 @@ if __name__ == "__main__":
     )
     df.loc[
         i, "Estimate Time to Trigger All"
-    ] = f"{int(total_trigger_time/60)}h:{total_trigger_time%60}m"
+    ] = f"{int(total_trigger_time / 60)}h:{total_trigger_time % 60}m"
 
     print(df)

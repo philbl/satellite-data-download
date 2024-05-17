@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from pathlib import Path
+from send2trash import send2trash
 
 from satellite_data_download.config.polygon_dict import POLYGON_DICT
 from satellite_data_download.config.folder_management import get_folder_management_dict
@@ -70,7 +71,7 @@ class AbstractPolygonFolderManager(ABC):
                     for destination_dict in self.destination_list
                 ]
             ):
-                file.unlink()
+                send2trash(file)
 
     @abstractmethod
     def apply_download_post_processing(self):

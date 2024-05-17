@@ -1,5 +1,6 @@
 from pathlib import Path
 import zipfile
+from send2trash import send2trash
 
 from satellite_data_download.polygon_folder_manager.abstract_polygon_folder_manager import (
     AbstractPolygonFolderManager,
@@ -21,7 +22,7 @@ class PolygonFolderManagerLevel1C(AbstractPolygonFolderManager):
         extract_dir = Path(self.download_path).absolute()
         with zipfile.ZipFile(zip_folder_path, "r") as zip_ref:
             zip_ref.extractall(extract_dir)
-        Path(zip_folder_path).unlink()
+        send2trash(Path(zip_folder_path).resolve())
 
     def apply_download_post_processing(self):
         absolute_source_path = Path(self.download_path).absolute()
