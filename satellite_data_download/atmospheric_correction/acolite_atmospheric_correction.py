@@ -1,6 +1,6 @@
 from pathlib import Path
 import subprocess
-from shutil import rmtree
+from send2trash import send2trash
 
 from satellite_data_download.polygon_folder_manager.abstract_polygon_folder_manager import (
     AbstractPolygonFolderManager,
@@ -53,7 +53,7 @@ class AcoliteAtmoshpericCorrection:
             f"rm '{self.str_absolute_to_split_path}/'*.txt \n"
         )
         if Path(self.output_sh_file).exists():
-            Path(self.output_sh_file).unlink()
+            send2trash(self.output_sh_file)
         for foldername in foldername_list:
             with open(self.output_sh_file, "a") as f:
                 command = basic_command + str(foldername).replace("\\", "/") + "' \n"
@@ -63,8 +63,8 @@ class AcoliteAtmoshpericCorrection:
     def run_bash_file(self):
         if Path(self.output_sh_file).exists():
             subprocess.run(f"bash {self.output_sh_file}")
-            Path(self.output_sh_file).unlink()
+            send2trash(self.output_sh_file)
 
     def delete_corrected_files(self):
         for folder_name in self.corrected_folder_list:
-            rmtree(folder_name)
+            send2trash(folder_name)

@@ -8,6 +8,7 @@ from fiona.crs import CRS
 import geopandas as gpd
 from shapely.geometry import box
 from rasterio.mask import mask
+from send2trash import send2trash
 
 from satellite_data_download.polygon_subset.abstract_polygon_subset import (
     AbstractPolygonSubset,
@@ -97,4 +98,4 @@ class PolygonSubsetLevel2A(AbstractPolygonSubset):
                 with rasterio.open("tmp.jp2", "w", **out_meta) as dest:
                     dest.write(out_raster)
                 zip_archive.write("tmp.jp2", jp2.filename)
-                Path("tmp.jp2").unlink()
+                send2trash("tmp.jp2")
